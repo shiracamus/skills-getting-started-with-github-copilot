@@ -24,8 +24,13 @@ document.addEventListener("DOMContentLoaded", () => {
         let participantsHTML = "";
         if (details.participants.length > 0) {
           participantsHTML = `
-            <ul class="participants-list">
-              ${details.participants.map(p => `<li>${p}</li>`).join("")}
+            <ul class="participants-list" style="list-style: none; padding-left: 0;">
+              ${details.participants.map(p => `
+                <li style="display: flex; align-items: center;">
+                  <span>${p}</span>
+                  <span class="delete-participant" title="Remove participant" data-activity="${name}" data-participant="${p}" style="cursor:pointer; margin-left:8px;">🗑️</span>
+                </li>
+              `).join("")}
             </ul>
           `;
         } else {
@@ -41,7 +46,31 @@ document.addEventListener("DOMContentLoaded", () => {
           ${participantsHTML}
         `;
 
+
         activitiesList.appendChild(activityCard);
+
+        // 削除アイコンのクリックイベントを追加
+        setTimeout(() => {
+          activityCard.querySelectorAll('.delete-participant').forEach(icon => {
+            icon.addEventListener('click', async (e) => {
+              const activity = icon.getAttribute('data-activity');
+              const participant = icon.getAttribute('data-participant');
+              try {
+                const response = await fetch(`/activities/${encodeURIComponent(activity)}/participants/${encodeURIComponent(participant)}`, {
+                  method: 'DELETE',
+                });
+                const result = await response.json();
+                if (response.ok) {
+                  fetchActivities();
+                } else {
+                  alert(result.detail || 'Failed to remove participant');
+                }
+              } catch (err) {
+                alert('Failed to remove participant');
+              }
+            });
+          });
+        }, 0);
 
         // Add option to select dropdown
         const option = document.createElement("option");
@@ -76,6 +105,8 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        // 参加登録後にアクティビティリストを再取得
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
